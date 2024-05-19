@@ -1,0 +1,62 @@
+#!/bin/sh
+set -e
+
+arrow() {
+  sed -u 's/^/-----> /'
+}
+
+indent() {
+  sed -u 's/^/       /'
+}
+
+# BUILDPACK_DIR=$(dirname "$0")/..
+APP_DIR=$1
+# ENV_DIR=$2
+
+# Bun
+
+echo "Installing Bun" | arrow
+BUN_VERSION="bun-v1.1.8"
+BUN_URL="https://github.com/oven-sh/bun/releases/download/$BUN_VERSION/bun-linux-x64.zip"
+
+curl -L $BUN_URL -o /tmp/bun.zip
+unzip /tmp/bun.zip -d /tmp
+mv /tmp/bun "/$APP_DIR/.bun"
+
+export PATH="/$APP_DIR/.bun/bin:$PATH"
+
+echo "Installing Bun dependencies" | arrow
+cd "$APP_DIR"
+bun install
+
+# Setup
+
+echo "Setting up" | arrow
+if [ -f vendor ]; then
+  echo "Removing vendor directory" | indent
+  rm -r vendor
+fi
+
+echo "Making new directories" | indent
+mkdir vendor
+cd vendor
+mkdir ffmpeg opus ytdl
+
+# FFmpeg
+
+echo "Installing FFmpeg" | arrow
+FFMPEG_URL="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+
+cd ffmpeg
+echo "Downloading" | indent
+curl "$FFMPEG_URL" -L --silent --fail --retry 5 --retry-max-time 15 -o ffmpeg.tar.xz
+
+echo "Unpacking" | indent
+tar -xJf "ffmpeg.tar.xz" --strip-components=1 --overwrite
+rm "ffmpeg.tar.xz"
+
+echo "Done" | indent
+export PATH="/$APP_DIR/vendor/ffmpeg/bin:$PATH"
+
+echo "-----> Build complete"
+cd "$APP_DIR"

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "AKTO Preview API"
+exit 0
